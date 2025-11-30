@@ -6,6 +6,9 @@ import SectionWrapper from './components/Section';
 import GlitchText from './components/GlitchText';
 import CyberButton from './components/CyberButton';
 import CyberTicker from './components/CyberTicker';
+import CustomCursor from './components/CustomCursor';
+import CyberBoids from './components/CyberBoids';
+import LoadingScreen from './components/LoadingScreen';
 import { Section, Project } from './types';
 import { PROJECTS, SKILLS, CAREER_HISTORY, MY_NAME, TAGLINE } from './constants';
 import { ExternalLink, Github, Linkedin, X, Mail, Briefcase, Send, CheckCircle } from 'lucide-react';
@@ -13,6 +16,8 @@ import { ExternalLink, Github, Linkedin, X, Mail, Briefcase, Send, CheckCircle }
 const App: React.FC = () => {
   const [activeSection, setActiveSection] = useState<Section>(Section.HERO);
   const [mounted, setMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [perfMode, setPerfMode] = useState<'HIGH' | 'LITE'>('HIGH');
   
   // Contact Form State
   const [formState, setFormState] = useState({ name: '', email: '', message: '' });
@@ -87,12 +92,15 @@ const App: React.FC = () => {
     }
   };
 
+  const handleTogglePerfMode = () => {
+    setPerfMode(prev => prev === 'HIGH' ? 'LITE' : 'HIGH');
+  };
+
   // Handle Link Click for Projects
   const handleProjectClick = (e: React.MouseEvent, link: string) => {
     if (link.startsWith('http')) {
       // External links open in new tab via window.open to be explicit, or let default <a> tag handle it
-      e.preventDefault();
-      window.open(link, '_blank');
+      // Default behavior is allowed by wrapping in <a> tag
     } else {
       // Internal links (placeholders) do nothing to avoid 404
       e.preventDefault();
@@ -103,8 +111,15 @@ const App: React.FC = () => {
     e.preventDefault();
     setFormStatus('SENDING');
     
-    // Simulate network request
+    // Construct mailto link
+    const subject = `[Portfolio Contact] Message from ${formState.name}`;
+    const body = `Name: ${formState.name}\nEmail: ${formState.email}\n\nMessage:\n${formState.message}`;
+    const mailtoUrl = `mailto:cgej0002@mail3.doshisha.ac.jp?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+    // Simulate processing time for effect, then open email client
     setTimeout(() => {
+      window.location.href = mailtoUrl;
+
       setFormStatus('SENT');
       setFormState({ name: '', email: '', message: '' });
       
@@ -112,7 +127,7 @@ const App: React.FC = () => {
       setTimeout(() => {
         setFormStatus('IDLE');
       }, 3000);
-    }, 1500);
+    }, 1000);
   };
 
   if (!mounted) return null;
@@ -120,21 +135,51 @@ const App: React.FC = () => {
   return (
     <div className="relative h-screen w-full bg-cyber-black text-gray-300 font-mono selection:bg-cyber-secondary selection:text-white overflow-hidden">
       
+      {/* Loading Screen Overlay */}
+      {isLoading && (
+        <LoadingScreen 
+          onSelectMode={(mode) => setPerfMode(mode)}
+          onComplete={() => setIsLoading(false)} 
+        />
+      )}
+
+      {/* Custom Cursor */}
+      <CustomCursor />
+
       {/* Background Layers */}
       <div className="fixed inset-0 z-0 pointer-events-none">
          {/* Base dark layer */}
          <div className="absolute inset-0 bg-cyber-black"></div>
          
-         {/* 3D Cyber World Background */}
-         <ThreeBackground />
+         {perfMode === 'HIGH' && (
+           <>
+             {/* 3D Cyber World Background (Middle Layer) */}
+             <div className="absolute inset-0 z-0">
+                <ThreeBackground />
+             </div>
 
-         {/* The Matrix Digital Rain (Overlay) */}
-         <div className="opacity-40">
-            <MatrixBackground />
-         </div>
+             {/* Cyber Boids (Fish) Layer */}
+             <div className="absolute inset-0 z-10">
+                <CyberBoids />
+             </div>
+
+             {/* The Matrix Digital Rain (Overlay) */}
+             {/* mix-blend-screen ensures black background of canvas is transparent */}
+             <div className="absolute inset-0 z-10 opacity-40 mix-blend-screen">
+                <MatrixBackground />
+             </div>
+           </>
+         )}
          
-         {/* Vignette & Color Grading */}
-         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(5,5,5,0.8)_100%)]"></div>
+         {perfMode === 'LITE' && (
+           <div className="absolute inset-0 z-0 bg-[linear-gradient(to_bottom,#050505,#0a0a12)]">
+             {/* Simple grid for Lite mode */}
+             <div className="absolute inset-0 bg-[linear-gradient(rgba(0,243,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,243,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+           </div>
+         )}
+         
+         {/* Vignette & Color Grading (Top Layer) */}
+         <div className="absolute inset-0 z-20 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(5,5,5,0.8)_100%)]"></div>
       </div>
 
       <div className="scanline z-50 pointer-events-none"></div>
@@ -143,7 +188,12 @@ const App: React.FC = () => {
       <CyberTicker />
       
       {/* Navigation */}
-      <NavBar activeSection={activeSection} onNavigate={handleNavigate} />
+      <NavBar 
+        activeSection={activeSection} 
+        onNavigate={handleNavigate} 
+        currentMode={perfMode}
+        onToggleMode={handleTogglePerfMode}
+      />
 
       {/* Main Scroll Container */}
       <main ref={mainRef} className="relative z-10 h-full w-full overflow-y-auto overflow-x-hidden snap-y snap-mandatory scroll-smooth md:pl-24 scrollbar-hide pt-8">
@@ -315,6 +365,8 @@ const App: React.FC = () => {
                   key={project.id}
                   href={project.link}
                   onClick={(e) => handleProjectClick(e, project.link || '#')}
+                  target={project.link?.startsWith('http') ? '_blank' : undefined}
+                  rel={project.link?.startsWith('http') ? 'noopener noreferrer' : undefined}
                   className="group relative bg-black border border-gray-800 hover:border-cyber-primary transition-colors duration-300 flex flex-col h-full cursor-pointer block"
                 >
                   {/* Image Container with Scanline Overlay */}
@@ -355,7 +407,6 @@ const App: React.FC = () => {
                       ))}
                     </div>
 
-                    {/* Previously an <a> tag, change to span to avoid nesting since parent is <a> */}
                     <span 
                       className="inline-flex items-center gap-2 text-sm text-cyber-secondary group-hover:text-white transition-colors uppercase tracking-wider font-bold mt-auto"
                     >
@@ -380,6 +431,9 @@ const App: React.FC = () => {
                  <p className="text-xl text-gray-300 font-sans">
                    ご連絡お待ちしております。
                  </p>
+                 <a href="mailto:cgej0002@mail3.doshisha.ac.jp" className="text-cyber-primary hover:text-white transition-colors mt-2 block font-mono text-sm">
+                   cgej0002@mail3.doshisha.ac.jp
+                 </a>
                </div>
 
                {/* Contact Form */}
@@ -431,9 +485,9 @@ const App: React.FC = () => {
 
                   <div className="flex justify-center">
                       <CyberButton type="submit" disabled={formStatus === 'SENDING' || formStatus === 'SENT'}>
-                          {formStatus === 'IDLE' && <span className="flex items-center gap-2">送信 <Send size={16} /></span>}
-                          {formStatus === 'SENDING' && <span className="animate-pulse">送信中...</span>}
-                          {formStatus === 'SENT' && <span className="flex items-center gap-2 text-green-400">送信完了 <CheckCircle size={16} /></span>}
+                          {formStatus === 'IDLE' && <span className="flex items-center gap-2">メーラーを起動 <Send size={16} /></span>}
+                          {formStatus === 'SENDING' && <span className="animate-pulse">起動中...</span>}
+                          {formStatus === 'SENT' && <span className="flex items-center gap-2 text-green-400">起動完了 <CheckCircle size={16} /></span>}
                       </CyberButton>
                   </div>
                </form>
