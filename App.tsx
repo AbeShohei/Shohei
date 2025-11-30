@@ -311,7 +311,12 @@ const App: React.FC = () => {
         <SectionWrapper id={Section.WORKS} title="Project_Index">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {PROJECTS.map((project: Project) => (
-                <div key={project.id} className="group relative bg-black border border-gray-800 hover:border-cyber-primary transition-colors duration-300 flex flex-col h-full">
+                <a 
+                  key={project.id}
+                  href={project.link}
+                  onClick={(e) => handleProjectClick(e, project.link || '#')}
+                  className="group relative bg-black border border-gray-800 hover:border-cyber-primary transition-colors duration-300 flex flex-col h-full cursor-pointer block"
+                >
                   {/* Image Container with Scanline Overlay */}
                   <div className="relative h-48 overflow-hidden shrink-0">
                     <div className="absolute inset-0 bg-cyber-primary/20 opacity-0 group-hover:opacity-100 transition-opacity z-10 mix-blend-overlay"></div>
@@ -350,19 +355,17 @@ const App: React.FC = () => {
                       ))}
                     </div>
 
-                    {/* Link handling */}
-                    <a 
-                      href={project.link} 
-                      onClick={(e) => handleProjectClick(e, project.link || '#')}
-                      className="inline-flex items-center gap-2 text-sm text-cyber-secondary hover:text-white transition-colors uppercase tracking-wider font-bold mt-auto cursor-pointer"
+                    {/* Previously an <a> tag, change to span to avoid nesting since parent is <a> */}
+                    <span 
+                      className="inline-flex items-center gap-2 text-sm text-cyber-secondary group-hover:text-white transition-colors uppercase tracking-wider font-bold mt-auto"
                     >
                       EXECUTE <ExternalLink size={14} />
-                    </a>
+                    </span>
                     
                     {/* Decorative Corner lines */}
                     <span className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-gray-600 group-hover:border-cyber-primary transition-colors"></span>
                   </div>
-                </div>
+                </a>
               ))}
             </div>
         </SectionWrapper>
